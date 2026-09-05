@@ -725,9 +725,10 @@ selVoice.addEventListener('change', () => {
 
 /* ═══════════════════════════════════════════════════════════════════
    TTS chunks
-   Chunks are split on sentence-ending punctuation so pauses fall
-   naturally between sentences, and mid-chunk on commas/semicolons
-   for breath-like rhythm.
+   Split ONLY on sentence-ending punctuation (.!?) so the voice
+   never cuts mid-phrase. Each chunk is one complete sentence.
+   iOS has a ~220-char utterance limit before it silently truncates,
+   so we also hard-split very long sentences there.
 ═══════════════════════════════════════════════════════════════════ */
 let ttsChunks = [];
 let chunkIdx  = 0;
@@ -735,29 +736,41 @@ let chunkIdx  = 0;
 function buildChunks(words) {
   const chunks = [];
   let buf = [];
+
+  const flush = () => {
+    if (!buf.length) return;
+    const last = buf[buf.length - 1].word;
+    chunks.push({
+      words:     [...buf],
+      startIdx:  buf[0].idx,
+      endIdx:    buf[buf.length - 1].idx,
+      pause:     pauseAfter(last),
+    });
+    buf = [];
+  };
+
   for (let i = 0; i < words.length; i++) {
     const w = words[i];
     if (/^\s+$/.test(w)) continue;
     buf.push({ word: w, idx: i });
-    // Break on sentence end or after ~10 words (keeps utterances short for iOS)
-    if (/[.!?]$/.test(w) || buf.length >= 10) {
-      chunks.push({ words: [...buf], startIdx: buf[0].idx, endIdx: buf[buf.length-1].idx, pause: pauseAfter(w) });
-      buf = [];
-    }
+
+    const isSentenceEnd = /[.!?]$/.test(w);
+    // Safety split for iOS: hard limit at ~25 words only when no sentence
+    // boundary has appeared — prevents silent truncation
+    const tooLong = buf.length >= 25;
+
+    if (isSentenceEnd || tooLong) flush();
   }
-  if (buf.length) {
-    const last = buf[buf.length-1].word;
-    chunks.push({ words: [...buf], startIdx: buf[0].idx, endIdx: buf[buf.length-1].idx, pause: pauseAfter(last) });
-  }
+  flush(); // remaining words
   return chunks;
 }
 
-// How long to pause (ms) after a chunk based on its final punctuation
+// Pause duration (ms) after a chunk
 function pauseAfter(word) {
-  if (/[.!?]$/.test(word)) return 280;   // full sentence pause
-  if (/[;:]$/.test(word))  return 160;   // clause pause
-  if (/,$/.test(word))     return 100;   // comma breath
-  return 60;                              // no punctuation — tiny gap
+  if (/[.!?]$/.test(word)) return 250;  // sentence end — clear breath
+  if (/[;:]$/.test(word))  return 140;  // clause
+  if (/,$/.test(word))     return 80;   // comma
+  return 40;                            // mid-sentence hard split — minimal gap
 }
 
 function getRate() {
