@@ -842,19 +842,28 @@ async function loadElVoices() {
     { voice_id: 'yoZ06aMxZJJ28mfd3POQ', name: 'Sam · American' },
   ];
 
-  // Validate the key with a lightweight call that has better CORS support
+  // Validate key — use /v1/models which has reliable CORS support
   try {
-    const res = await fetch('https://api.elevenlabs.io/v1/user', {
+    const res = await fetch('https://api.elevenlabs.io/v1/models', {
       headers: { 'xi-api-key': elApiKey }
     });
-    if (!res.ok) throw new Error('bad key');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
-    const user = await res.json();
-    const used  = user.subscription?.character_count ?? 0;
-    const limit = user.subscription?.character_limit ?? 0;
-    const remaining = limit - used;
+    // Key is valid — now get quota separately (may fail on free tier, that's ok)
+    let remaining = null;
+    try {
+      const uRes = await fetch('https://api.elevenlabs.io/v1/user', {
+        headers: { 'xi-api-key': elApiKey }
+      });
+      if (uRes.ok) {
+        const u = await uRes.json();
+        const used  = u.subscription?.character_count ?? 0;
+        const limit = u.subscription?.character_limit ?? 0;
+        remaining = limit - used;
+      }
+    } catch { /* quota fetch optional — ignore */ }
 
-    if (remaining <= 0) {
+    if (remaining !== null && remaining <= 0) {
       setElStatus('err', 'Out of credits — upgrade at elevenlabs.io');
       resetElVoiceSelect();
       return;
@@ -877,7 +886,7 @@ async function loadElVoices() {
       localStorage.setItem(EL_VOICE_STORE, elVoiceId);
     }
 
-    setElStatus('ok', `${remaining.toLocaleString()} chars left`);
+    setElStatus('ok', remaining !== null ? `${remaining.toLocaleString()} chars left` : 'Connected');
 
     // Show ElevenLabs option in main voice picker and auto-select it
     const elOpt = document.getElementById('opt-elevenlabs');
@@ -887,8 +896,8 @@ async function loadElVoices() {
     }
     selVoice.value = '__elevenlabs__';
 
-  } catch {
-    setElStatus('err', 'Check your API key');
+  } catch(e) {
+    setElStatus('err', e.message === 'HTTP 401' ? 'Invalid API key' : e.message === 'HTTP 403' ? 'Key lacks permissions' : 'Check your API key');
     resetElVoiceSelect();
   }
 }
