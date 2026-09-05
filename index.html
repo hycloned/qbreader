@@ -132,10 +132,13 @@
       border: 1px solid var(--border);
       border-radius: var(--radius);
       padding: 18px 18px;
-      min-height: 140px;
-      flex: 1;
+      height: 260px;        /* fixed height — never grows */
+      overflow-y: auto;     /* scroll inside the card */
+      flex-shrink: 0;
       position: relative;
       transition: border-color .25s;
+      /* smooth momentum scroll on iOS */
+      -webkit-overflow-scrolling: touch;
     }
     #question-card.reading { border-color: var(--accent); }
     #question-card.buzzed  { border-color: var(--yellow); }
@@ -596,8 +599,9 @@ function renderQuestionWords(upTo) {
     return `<span class="word unspoken" data-i="${i}">${w}</span>`;
   });
   qText.innerHTML = fragments.join('');
+  // scroll the spoken word into view within the card, not the whole page
   const el = qText.querySelector('.spoken');
-  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
 /* ═══════════════════════════════════════════════════════════════════
