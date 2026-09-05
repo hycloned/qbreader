@@ -67,6 +67,13 @@
     }
     #score-display span { color: var(--text); font-weight: 600; }
 
+    /* ── Filters row (always visible) ── */
+    #filters-row {
+      display: flex;
+      gap: 12px;
+    }
+    #filters-row .setting-group { flex: 1 1 0; }
+
     /* ── Gear button ── */
     #btn-settings {
       background: none;
@@ -411,47 +418,46 @@
     </div>
   </header>
 
-  <!-- Settings drawer (hidden by default) -->
-  <div id="settings-drawer">
-
-    <!-- Question filters -->
-    <div class="drawer-section">
-      <div class="drawer-section-title">Question Filters</div>
-      <div class="setting-group">
-        <label>Category</label>
-        <select id="sel-category">
-          <option value="">All</option>
-          <option value="Literature">Literature</option>
-          <option value="History">History</option>
-          <option value="Science">Science</option>
-          <option value="Fine Arts">Fine Arts</option>
-          <option value="Religion">Religion</option>
-          <option value="Mythology">Mythology</option>
-          <option value="Philosophy">Philosophy</option>
-          <option value="Social Science">Social Science</option>
-          <option value="Current Events">Current Events</option>
-          <option value="Geography">Geography</option>
-          <option value="Other Academic">Other Academic</option>
-          <option value="Trash">Trash</option>
-        </select>
-      </div>
-      <div class="setting-group">
-        <label>Difficulty</label>
-        <select id="sel-difficulty">
-          <option value="">All</option>
-          <option value="1">1 — Middle School</option>
-          <option value="2">2</option>
-          <option value="3">3 — Easy HS</option>
-          <option value="4">4</option>
-          <option value="5">5 — Regular HS</option>
-          <option value="6">6 — Hard HS</option>
-          <option value="7">7 — Easy College</option>
-          <option value="8">8 — Regular College</option>
-          <option value="9">9 — Hard College</option>
-          <option value="10">10 — Open</option>
-        </select>
-      </div>
+  <!-- Category & difficulty — always visible -->
+  <div id="filters-row">
+    <div class="setting-group">
+      <label>Category</label>
+      <select id="sel-category">
+        <option value="">All Categories</option>
+        <option value="Literature">Literature</option>
+        <option value="History">History</option>
+        <option value="Science">Science</option>
+        <option value="Fine Arts">Fine Arts</option>
+        <option value="Religion">Religion</option>
+        <option value="Mythology">Mythology</option>
+        <option value="Philosophy">Philosophy</option>
+        <option value="Social Science">Social Science</option>
+        <option value="Current Events">Current Events</option>
+        <option value="Geography">Geography</option>
+        <option value="Other Academic">Other Academic</option>
+        <option value="Trash">Trash</option>
+      </select>
     </div>
+    <div class="setting-group">
+      <label>Difficulty</label>
+      <select id="sel-difficulty">
+        <option value="">All Levels</option>
+        <option value="1">1 — Middle School</option>
+        <option value="2">2</option>
+        <option value="3">3 — Easy HS</option>
+        <option value="4">4</option>
+        <option value="5">5 — Regular HS</option>
+        <option value="6">6 — Hard HS</option>
+        <option value="7">7 — Easy College</option>
+        <option value="8">8 — Regular College</option>
+        <option value="9">9 — Hard College</option>
+        <option value="10">10 — Open</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Settings drawer (voice / speed / ElevenLabs) -->
+  <div id="settings-drawer">
 
     <!-- Voice & speed -->
     <div class="drawer-section">
