@@ -821,9 +821,9 @@ function resetElVoiceSelect() {
 }
 
 async function loadElVoices() {
-  // ElevenLabs' curated voices — these are available on every account.
-  // We skip the /v1/voices API call because it's blocked by CORS from
-  // browser origins. The TTS endpoint itself does allow browser requests.
+  // ElevenLabs blocks browser fetch() for all API endpoints due to CORS.
+  // Skip validation entirely — populate voices immediately and trust the key.
+  // If the key is wrong the TTS call will fail and we fall back to Web Speech.
   const defaultVoices = [
     { voice_id: 'cgSgspJ2msm6clMCkdW9', name: 'Jessica · American' },
     { voice_id: 'nPczCjzI2devNBz1zQrb', name: 'Brian · American' },
@@ -842,64 +842,30 @@ async function loadElVoices() {
     { voice_id: 'yoZ06aMxZJJ28mfd3POQ', name: 'Sam · American' },
   ];
 
-  // Validate key — use /v1/models which has reliable CORS support
-  try {
-    const res = await fetch('https://api.elevenlabs.io/v1/models', {
-      headers: { 'xi-api-key': elApiKey }
-    });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  selElVoice.innerHTML = '';
+  defaultVoices.forEach(v => {
+    const opt = document.createElement('option');
+    opt.value = v.voice_id;
+    opt.textContent = v.name;
+    selElVoice.appendChild(opt);
+  });
 
-    // Key is valid — now get quota separately (may fail on free tier, that's ok)
-    let remaining = null;
-    try {
-      const uRes = await fetch('https://api.elevenlabs.io/v1/user', {
-        headers: { 'xi-api-key': elApiKey }
-      });
-      if (uRes.ok) {
-        const u = await uRes.json();
-        const used  = u.subscription?.character_count ?? 0;
-        const limit = u.subscription?.character_limit ?? 0;
-        remaining = limit - used;
-      }
-    } catch { /* quota fetch optional — ignore */ }
-
-    if (remaining !== null && remaining <= 0) {
-      setElStatus('err', 'Out of credits — upgrade at elevenlabs.io');
-      resetElVoiceSelect();
-      return;
-    }
-
-    selElVoice.innerHTML = '';
-    defaultVoices.forEach(v => {
-      const opt = document.createElement('option');
-      opt.value = v.voice_id;
-      opt.textContent = v.name;
-      selElVoice.appendChild(opt);
-    });
-
-    // Restore saved voice or default to first
-    if (elVoiceId && defaultVoices.find(v => v.voice_id === elVoiceId)) {
-      selElVoice.value = elVoiceId;
-    } else {
-      elVoiceId = defaultVoices[0].voice_id;
-      selElVoice.value = elVoiceId;
-      localStorage.setItem(EL_VOICE_STORE, elVoiceId);
-    }
-
-    setElStatus('ok', remaining !== null ? `${remaining.toLocaleString()} chars left` : 'Connected');
-
-    // Show ElevenLabs option in main voice picker and auto-select it
-    const elOpt = document.getElementById('opt-elevenlabs');
-    if (elOpt) {
-      elOpt.classList.remove('hidden');
-      elOpt.textContent = `⚡ ElevenLabs — ${selElVoice.options[selElVoice.selectedIndex]?.textContent || ''}`;
-    }
-    selVoice.value = '__elevenlabs__';
-
-  } catch(e) {
-    setElStatus('err', e.message === 'HTTP 401' ? 'Invalid API key' : e.message === 'HTTP 403' ? 'Key lacks permissions' : 'Check your API key');
-    resetElVoiceSelect();
+  if (elVoiceId && defaultVoices.find(v => v.voice_id === elVoiceId)) {
+    selElVoice.value = elVoiceId;
+  } else {
+    elVoiceId = defaultVoices[0].voice_id;
+    selElVoice.value = elVoiceId;
+    localStorage.setItem(EL_VOICE_STORE, elVoiceId);
   }
+
+  setElStatus('ok', 'Key saved — will verify on first question');
+
+  const elOpt = document.getElementById('opt-elevenlabs');
+  if (elOpt) {
+    elOpt.classList.remove('hidden');
+    elOpt.textContent = `⚡ ElevenLabs — ${selElVoice.options[selElVoice.selectedIndex]?.textContent || ''}`;
+  }
+  selVoice.value = '__elevenlabs__';
 }
 
 selElVoice.addEventListener('change', () => {
@@ -941,7 +907,11 @@ async function speakWithElevenLabs(text, onWordTick, onEnd, onError) {
       }),
     });
 
-    if (!res.ok) throw new Error('EL API error');
+    if (!res.ok) {
+      const msg = res.status === 401 ? 'Invalid API key' : res.status === 429 ? 'Out of credits' : `EL error ${res.status}`;
+      setElStatus('err', msg);
+      throw new Error(msg);
+    }
 
     const blob  = await res.blob();
     const url   = URL.createObjectURL(blob);
