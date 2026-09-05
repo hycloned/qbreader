@@ -821,34 +821,54 @@ function resetElVoiceSelect() {
 }
 
 async function loadElVoices() {
+  // ElevenLabs' curated voices — these are available on every account.
+  // We skip the /v1/voices API call because it's blocked by CORS from
+  // browser origins. The TTS endpoint itself does allow browser requests.
+  const defaultVoices = [
+    { voice_id: 'cgSgspJ2msm6clMCkdW9', name: 'Jessica · American' },
+    { voice_id: 'nPczCjzI2devNBz1zQrb', name: 'Brian · American' },
+    { voice_id: 'iP95p4xoKVk53GoZ742B', name: 'Chris · American' },
+    { voice_id: 'onwK4e9ZLuTAKqWW03F9', name: 'Daniel · British' },
+    { voice_id: 'XB0fDUnXU5powFXDhCwa', name: 'Charlotte · Swedish' },
+    { voice_id: 'pFZP5JQG7iQjIQuC4Bku', name: 'Lily · British' },
+    { voice_id: 'TX3LPaxmHKxFdv7VOQHJ', name: 'Liam · American' },
+    { voice_id: 'pqHfZKP75CvOlQylNhV4', name: 'Bill · American' },
+    { voice_id: '21m00Tcm4TlvDq8ikWAM', name: 'Rachel · American' },
+    { voice_id: 'ErXwobaYiN019PkySvjV', name: 'Antoni · American' },
+    { voice_id: 'VR6AewLTigWG4xSOukaG', name: 'Arnold · American' },
+    { voice_id: 'AZnzlk1XvdvUeBnXmlld', name: 'Domi · American' },
+    { voice_id: 'MF3mGyEYCl7XYWbV9V6O', name: 'Elli · American' },
+    { voice_id: 'TxGEqnHWrfWFTfGW9XjX', name: 'Josh · American' },
+    { voice_id: 'yoZ06aMxZJJ28mfd3POQ', name: 'Sam · American' },
+  ];
+
+  // Validate the key with a lightweight call that has better CORS support
   try {
-    const res = await fetch('https://api.elevenlabs.io/v1/voices', {
+    const res = await fetch('https://api.elevenlabs.io/v1/user', {
       headers: { 'xi-api-key': elApiKey }
     });
     if (!res.ok) throw new Error('bad key');
-    const data = await res.json();
-    const voices = data.voices || [];
 
     selElVoice.innerHTML = '';
-    voices.forEach(v => {
+    defaultVoices.forEach(v => {
       const opt = document.createElement('option');
       opt.value = v.voice_id;
-      opt.textContent = `${v.name}${v.labels?.accent ? ' · ' + v.labels.accent : ''}`;
+      opt.textContent = v.name;
       selElVoice.appendChild(opt);
     });
 
     // Restore saved voice or default to first
-    if (elVoiceId && voices.find(v => v.voice_id === elVoiceId)) {
+    if (elVoiceId && defaultVoices.find(v => v.voice_id === elVoiceId)) {
       selElVoice.value = elVoiceId;
-    } else if (voices.length) {
-      elVoiceId = voices[0].voice_id;
+    } else {
+      elVoiceId = defaultVoices[0].voice_id;
       selElVoice.value = elVoiceId;
       localStorage.setItem(EL_VOICE_STORE, elVoiceId);
     }
 
-    setElStatus('ok', voices.length + ' voices loaded');
+    setElStatus('ok', 'Connected');
 
-    // Show ElevenLabs option in the main voice picker and auto-select it
+    // Show ElevenLabs option in main voice picker and auto-select it
     const elOpt = document.getElementById('opt-elevenlabs');
     if (elOpt) {
       elOpt.classList.remove('hidden');
