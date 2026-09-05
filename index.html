@@ -849,6 +849,17 @@ async function loadElVoices() {
     });
     if (!res.ok) throw new Error('bad key');
 
+    const user = await res.json();
+    const used  = user.subscription?.character_count ?? 0;
+    const limit = user.subscription?.character_limit ?? 0;
+    const remaining = limit - used;
+
+    if (remaining <= 0) {
+      setElStatus('err', 'Out of credits — upgrade at elevenlabs.io');
+      resetElVoiceSelect();
+      return;
+    }
+
     selElVoice.innerHTML = '';
     defaultVoices.forEach(v => {
       const opt = document.createElement('option');
@@ -866,7 +877,7 @@ async function loadElVoices() {
       localStorage.setItem(EL_VOICE_STORE, elVoiceId);
     }
 
-    setElStatus('ok', 'Connected');
+    setElStatus('ok', `${remaining.toLocaleString()} chars left`);
 
     // Show ElevenLabs option in main voice picker and auto-select it
     const elOpt = document.getElementById('opt-elevenlabs');
