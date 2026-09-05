@@ -1,9 +1,10 @@
 // Entry point — wires modules together and handles settings UI.
 
-import { state, settings, saveAnswerMode, dom } from './state.js';
+import { state, settings, saveAnswerMode, dom, app } from './state.js';
 import { SUBCATEGORIES, yearOptions } from './categories.js';
 import * as tts from './tts.js';
 import * as solo from './solo.js';
+import * as multi from './multiplayer.js';
 import * as ui from './ui.js';
 
 /* ── Filters: populate year dropdowns ── */
@@ -61,20 +62,84 @@ dom.btnSettings.addEventListener('click', () => {
   dom.btnSettings.classList.toggle('open', open);
 });
 
-/* ── Game controls ── */
-dom.btnNew.addEventListener('click', solo.newQuestion);
-dom.btnBuzz.addEventListener('click', solo.buzz);
-dom.btnSkip.addEventListener('click', solo.skip);
-dom.btnCancelMic.addEventListener('click', solo.cancelMic);
-dom.btnSubmit.addEventListener('click', () => solo.submitAnswer(dom.answerInput.value));
-dom.answerInput.addEventListener('keydown', e => {
-  if (e.key === 'Enter') solo.submitAnswer(dom.answerInput.value);
+/* ── Mode switching ── */
+function setMode(mode) {
+  if (app.mode === mode) return;
+  // Tearing down the current mode
+  if (app.mode === 'multi') multi.leaveRoom();
+  else { tts.stopReading(); }
+
+  app.mode = mode;
+  dom.tabSolo.classList.toggle('active', mode === 'solo');
+  dom.tabMulti.classList.toggle('active', mode === 'multi');
+
+  const isMulti = mode === 'multi';
+  dom.roomBar.classList.toggle('hidden', !isMulti);
+  // Filters only apply to solo mode (multiplayer settings are room-controlled)
+  dom.filtersRow.classList.toggle('hidden', isMulti);
+  dom.filtersRow2.classList.toggle('hidden', isMulti);
+
+  // Reset the board
+  ui.setPhase('idle');
+  ui.hideAll();
+  dom.btnBuzz.disabled = true;
+  dom.emptyState.classList.remove('hidden');
+
+  if (isMulti) {
+    multi.prefillUsername();
+    dom.btnSkip.classList.add('hidden');
+    dom.btnNew.textContent = 'New Question'; // becomes "Next" once connected
+    dom.emptyState.querySelector('p').innerHTML = 'Join a room to play with friends';
+  } else {
+    dom.btnSkip.classList.remove('hidden');
+    dom.btnNew.textContent = 'New Question';
+    dom.emptyState.querySelector('p').innerHTML = 'Tap <strong>New Question</strong> to start';
+  }
+}
+dom.tabSolo.addEventListener('click', () => setMode('solo'));
+dom.tabMulti.addEventListener('click', () => setMode('multi'));
+
+/* ── Room join / leave ── */
+dom.btnJoinRoom.addEventListener('click', () => {
+  multi.joinRoom(dom.roomNameInput.value, dom.usernameInput.value);
 });
+dom.roomNameInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter') multi.joinRoom(dom.roomNameInput.value, dom.usernameInput.value);
+});
+dom.btnLeaveRoom.addEventListener('click', () => multi.leaveRoom());
+
+/* ── Game controls — routed by mode ── */
+dom.btnNew.addEventListener('click', () => {
+  if (app.mode === 'multi') multi.next();
+  else solo.newQuestion();
+});
+dom.btnBuzz.addEventListener('click', () => {
+  if (app.mode === 'multi') multi.buzz();
+  else solo.buzz();
+});
+dom.btnSkip.addEventListener('click', () => {
+  if (app.mode === 'solo') solo.skip();
+});
+dom.btnCancelMic.addEventListener('click', () => {
+  if (app.mode === 'multi') multi.cancelMic();
+  else solo.cancelMic();
+});
+dom.btnSubmit.addEventListener('click', () => submitAnswer(dom.answerInput.value));
+dom.answerInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter') submitAnswer(dom.answerInput.value);
+});
+function submitAnswer(val) {
+  if (app.mode === 'multi') multi.submitAnswer(val);
+  else solo.submitAnswer(val);
+}
 
 /* ── Speed slider ── */
 dom.speedSlider.addEventListener('input', () => {
   dom.speedLabel.textContent =
     parseFloat(dom.speedSlider.value).toFixed(2).replace(/\.?0+$/, '') + '×';
+  // Multiplayer TTS reads word-by-word as they stream; the new rate applies
+  // automatically to the next queued word, so nothing to rebuild here.
+  if (app.mode === 'multi') return;
   if (state.phase !== 'reading') return;
   tts.changeSpeedWhileReading({
     onWord: (idx) => { ui.renderQuestionWords(idx); ui.updateProgress(idx); },

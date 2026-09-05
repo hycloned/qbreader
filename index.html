@@ -41,6 +41,28 @@
     </div>
   </div>
 
+  <!-- Mode toggle -->
+  <div id="mode-tabs">
+    <button class="mode-tab active" id="tab-solo">Solo</button>
+    <button class="mode-tab" id="tab-multi">Multiplayer</button>
+  </div>
+
+  <!-- Multiplayer room bar (hidden in solo mode) -->
+  <div id="room-bar" class="hidden">
+    <div id="room-join">
+      <input id="room-name-input" type="text" placeholder="Room name (share with friends)"
+             autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+      <input id="username-input" type="text" placeholder="Your name"
+             autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+      <button id="btn-join-room">Join</button>
+    </div>
+    <div id="room-connected" class="hidden">
+      <span id="room-status">Room: <strong id="room-label"></strong></span>
+      <button id="btn-leave-room">Leave</button>
+    </div>
+    <div id="players-list"></div>
+  </div>
+
   <!-- Filters -->
   <div id="filters-row">
     <div class="setting-group">

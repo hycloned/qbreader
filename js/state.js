@@ -68,4 +68,22 @@ export const dom = {
   selAnswerMode: $('sel-answer-mode'),
   btnSettings:   $('btn-settings'),
   settingsDrawer:$('settings-drawer'),
+
+  // Mode + multiplayer
+  tabSolo:       $('tab-solo'),
+  tabMulti:      $('tab-multi'),
+  roomBar:       $('room-bar'),
+  roomJoin:      $('room-join'),
+  roomConnected: $('room-connected'),
+  roomNameInput: $('room-name-input'),
+  usernameInput: $('username-input'),
+  btnJoinRoom:   $('btn-join-room'),
+  btnLeaveRoom:  $('btn-leave-room'),
+  roomLabel:     $('room-label'),
+  playersList:   $('players-list'),
+  filtersRow:    $('filters-row'),
+  filtersRow2:   $('filters-row-2'),
 };
+
+/** Current mode: 'solo' | 'multi' */
+export const app = { mode: 'solo' };

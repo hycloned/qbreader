@@ -98,6 +98,95 @@ header h1 { font-size: 1.15rem; font-weight: 700; color: var(--accent); letter-s
 #filters-row .setting-group, #filters-row-2 .setting-group { flex: 1 1 0; }
 .setting-group select:disabled { opacity: 0.45; cursor: not-allowed; }
 
+/* ── Mode tabs ── */
+#mode-tabs {
+  display: flex;
+  gap: 4px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 4px;
+}
+.mode-tab {
+  flex: 1;
+  padding: 10px;
+  border: none;
+  background: none;
+  color: var(--muted);
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .15s, color .15s;
+}
+.mode-tab.active { background: var(--accent); color: #fff; }
+
+/* ── Room bar ── */
+#room-bar {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+#room-join { display: flex; gap: 8px; flex-wrap: wrap; }
+#room-join input {
+  flex: 1 1 120px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 0.9rem;
+  outline: none;
+}
+#room-join input:focus { border-color: var(--accent); }
+#btn-join-room {
+  flex: 0 0 auto;
+  padding: 10px 20px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-weight: 700;
+  cursor: pointer;
+}
+#room-connected {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 0.9rem;
+}
+#room-connected strong { color: var(--accent); }
+#btn-leave-room {
+  padding: 6px 14px;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  border-radius: 8px;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+#btn-leave-room:active { background: var(--border); }
+
+/* ── Players list ── */
+#players-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.player-chip {
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 20px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+.player-chip .pscore { color: var(--accent); margin-left: 4px; }
+.player-chip.buzzed { border-color: var(--yellow); color: var(--yellow); }
+.player-chip.me { border-color: var(--accent); }
+
 /* ── Meta badges ── */
 #meta-strip { display: flex; flex-wrap: wrap; gap: 6px; min-height: 24px; }
 .badge {
