@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>QBReader Mobile</title>
   <style>
-    /* ── Reset & base ─────────────────────────────────────────────── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
@@ -32,7 +31,7 @@
       -webkit-tap-highlight-color: transparent;
     }
 
-    /* ── Layout ───────────────────────────────────────────────────── */
+    /* ── Layout ── */
     #app {
       display: flex;
       flex-direction: column;
@@ -43,7 +42,7 @@
       gap: 14px;
     }
 
-    /* ── Header ───────────────────────────────────────────────────── */
+    /* ── Header ── */
     header {
       display: flex;
       align-items: center;
@@ -56,6 +55,11 @@
       color: var(--accent);
       letter-spacing: .5px;
     }
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
     #score-display {
       font-size: 0.85rem;
       color: var(--muted);
@@ -63,15 +67,62 @@
     }
     #score-display span { color: var(--text); font-weight: 600; }
 
-    /* ── Settings panel ───────────────────────────────────────────── */
-    #settings-panel {
+    /* ── Gear button ── */
+    #btn-settings {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      border-radius: 8px;
+      width: 36px; height: 36px;
+      font-size: 1.1rem;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: background .15s, color .15s;
+      flex-shrink: 0;
+    }
+    #btn-settings:active, #btn-settings.open {
+      background: var(--surface);
+      color: var(--text);
+      border-color: var(--accent);
+    }
+
+    /* ── Settings drawer ── */
+    #settings-drawer {
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      padding: 14px 16px;
+      overflow: hidden;
+      max-height: 0;
+      opacity: 0;
+      transition: max-height .3s ease, opacity .2s ease, padding .3s ease;
+      padding: 0 16px;
+    }
+    #settings-drawer.open {
+      max-height: 600px;
+      opacity: 1;
+      padding: 16px;
+    }
+    .drawer-section {
       display: flex;
       flex-wrap: wrap;
       gap: 12px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 14px;
+    }
+    .drawer-section:last-child {
+      border-bottom: none;
+      margin-bottom: 0;
+      padding-bottom: 0;
+    }
+    .drawer-section-title {
+      width: 100%;
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--muted);
+      font-weight: 700;
+      margin-bottom: 2px;
     }
     .setting-group {
       display: flex;
@@ -87,30 +138,49 @@
       font-weight: 600;
     }
     .setting-group select,
-    .setting-group input[type="range"] {
+    .setting-group input[type="text"],
+    .setting-group input[type="password"] {
       background: var(--bg);
       border: 1px solid var(--border);
       color: var(--text);
       border-radius: 8px;
-      padding: 6px 10px;
+      padding: 7px 10px;
       font-size: 0.88rem;
       appearance: none;
       width: 100%;
+      outline: none;
     }
-    .setting-group select:focus { outline: 2px solid var(--accent); }
-    input[type="range"] {
+    .setting-group select:focus,
+    .setting-group input:focus { border-color: var(--accent); }
+    .setting-group input[type="range"] {
+      background: none;
+      border: none;
       padding: 4px 0;
       accent-color: var(--accent);
       cursor: pointer;
+      width: 100%;
     }
     #speed-label { color: var(--text); font-size: 0.88rem; }
 
-    /* ── Meta badge strip ─────────────────────────────────────────── */
+    /* ElevenLabs status pill */
+    #el-status {
+      font-size: 0.72rem;
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-weight: 600;
+      margin-top: 4px;
+      display: inline-block;
+    }
+    #el-status.ok  { background: #14532d; color: var(--green); }
+    #el-status.err { background: #450a0a; color: var(--red); }
+    #el-status.off { background: var(--border); color: var(--muted); }
+
+    /* ── Meta badges ── */
     #meta-strip {
       display: flex;
       flex-wrap: wrap;
       gap: 6px;
-      min-height: 28px;
+      min-height: 24px;
     }
     .badge {
       font-size: 0.75rem;
@@ -126,25 +196,23 @@
     .badge.diff { color: var(--yellow); border-color: #f59e0b55; }
     .badge.set  { color: var(--muted); }
 
-    /* ── Question card ────────────────────────────────────────────── */
+    /* ── Question card ── */
     #question-card {
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      padding: 18px 18px;
-      height: 260px;        /* fixed height — never grows */
-      overflow-y: auto;     /* scroll inside the card */
+      padding: 18px;
+      height: 260px;
+      overflow-y: auto;
       flex-shrink: 0;
       position: relative;
       transition: border-color .25s;
-      /* smooth momentum scroll on iOS */
       -webkit-overflow-scrolling: touch;
     }
     #question-card.reading { border-color: var(--accent); }
     #question-card.buzzed  { border-color: var(--yellow); }
     #question-card.correct { border-color: var(--green); }
     #question-card.wrong   { border-color: var(--red); }
-    #question-card.prompt  { border-color: var(--yellow); }
 
     #question-text {
       font-size: 1rem;
@@ -152,12 +220,10 @@
       color: var(--text);
       white-space: pre-wrap;
     }
-    /* highlight the word currently being spoken */
-    .spoken { background: rgba(108,99,255,.35); border-radius: 3px; padding: 0 2px; }
-    /* words not yet spoken */
+    .spoken   { background: rgba(108,99,255,.35); border-radius: 3px; padding: 0 2px; }
     .unspoken { color: var(--muted); }
 
-    /* ── Progress bar ─────────────────────────────────────────────── */
+    /* ── Progress bar ── */
     #progress-bar-wrap {
       height: 3px;
       background: var(--border);
@@ -172,7 +238,7 @@
       transition: width .15s linear;
     }
 
-    /* ── Answer reveal ────────────────────────────────────────────── */
+    /* ── Answer reveal ── */
     #answer-reveal {
       display: none;
       margin-top: 14px;
@@ -193,14 +259,9 @@
     #answer-reveal .answer-text { font-weight: 700; font-size: 1.05rem; }
     #answer-reveal.correct .answer-text { color: var(--green); }
     #answer-reveal.wrong   .answer-text { color: var(--red); }
-    #answer-reveal.prompt  .answer-text { color: var(--yellow); }
 
-    /* ── Buzz / Answer section ────────────────────────────────────── */
-    #buzz-section {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
+    /* ── Buzz section ── */
+    #buzz-section { display: flex; flex-direction: column; gap: 10px; }
 
     #btn-buzz {
       width: 100%;
@@ -220,13 +281,8 @@
     #btn-buzz:active { transform: scale(.97); background: var(--accent-dk); }
     #btn-buzz:disabled { background: var(--border); color: var(--muted); cursor: default; transform: none; }
 
-    #answer-input-row {
-      display: none;
-      flex-direction: column;
-      gap: 8px;
-    }
+    #answer-input-row { display: none; flex-direction: column; gap: 8px; }
 
-    /* mic listening indicator */
     #mic-status {
       display: flex;
       align-items: center;
@@ -239,27 +295,14 @@
       font-weight: 600;
       color: var(--yellow);
     }
-    #mic-status .mic-icon {
-      font-size: 1.4rem;
-      animation: pulse 1s ease-in-out infinite;
-    }
+    #mic-status .mic-icon { font-size: 1.4rem; animation: pulse 1s ease-in-out infinite; }
     @keyframes pulse {
       0%, 100% { opacity: 1; transform: scale(1); }
       50%       { opacity: 0.5; transform: scale(0.85); }
     }
-    #mic-transcript {
-      font-size: 0.9rem;
-      color: var(--text);
-      font-weight: 400;
-      font-style: italic;
-      min-height: 1.2em;
-    }
+    #mic-transcript { font-size: 0.9rem; color: var(--text); font-weight: 400; font-style: italic; min-height: 1.2em; }
 
-    /* fallback manual input (shown if no mic support) */
-    #fallback-row {
-      display: none;
-      gap: 8px;
-    }
+    #fallback-row { display: none; gap: 8px; }
     #answer-input {
       flex: 1;
       background: var(--bg);
@@ -280,11 +323,7 @@
       font-size: 1rem;
       font-weight: 700;
       cursor: pointer;
-      transition: opacity .15s;
     }
-    #btn-submit:active { opacity: .8; }
-
-    /* cancel mic button */
     #btn-cancel-mic {
       padding: 10px;
       background: transparent;
@@ -309,11 +348,8 @@
     #result-banner.wrong   { background: #450a0a; color: var(--red); }
     #result-banner.prompt  { background: #431407; color: var(--yellow); }
 
-    /* ── Bottom actions ───────────────────────────────────────────── */
-    #action-row {
-      display: flex;
-      gap: 10px;
-    }
+    /* ── Action row ── */
+    #action-row { display: flex; gap: 10px; }
     .action-btn {
       flex: 1;
       padding: 14px;
@@ -326,16 +362,11 @@
       cursor: pointer;
       transition: background .15s, border-color .15s;
     }
-    .action-btn:hover { background: var(--border); }
     .action-btn:active { background: var(--accent); border-color: var(--accent); }
-    .action-btn.primary {
-      background: var(--accent);
-      border-color: var(--accent);
-      color: #fff;
-    }
-    .action-btn.primary:hover { background: var(--accent-dk); }
+    .action-btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .action-btn.primary:active { background: var(--accent-dk); }
 
-    /* ── Empty state ──────────────────────────────────────────────── */
+    /* ── Empty state ── */
     #empty-state {
       display: flex;
       flex-direction: column;
@@ -345,11 +376,11 @@
       padding: 40px 20px;
       color: var(--muted);
       text-align: center;
+      height: 100%;
     }
     #empty-state .icon { font-size: 3rem; }
-    #empty-state p { font-size: 1rem; }
 
-    /* ── Spinner ──────────────────────────────────────────────────── */
+    /* ── Spinner ── */
     .spinner {
       display: inline-block;
       width: 18px; height: 18px;
@@ -362,7 +393,6 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* ── Utility ──────────────────────────────────────────────────── */
     .hidden { display: none !important; }
   </style>
 </head>
@@ -372,59 +402,88 @@
   <!-- Header -->
   <header>
     <h1>⚡ QBReader</h1>
-    <div id="score-display">
-      <span id="score-correct">0</span>/<span id="score-total">0</span>
-      &nbsp;·&nbsp;
-      <span id="score-pct">—</span>
+    <div class="header-right">
+      <div id="score-display">
+        <span id="score-correct">0</span>/<span id="score-total">0</span>
+        &nbsp;·&nbsp;<span id="score-pct">—</span>
+      </div>
+      <button id="btn-settings" title="Settings">⚙️</button>
     </div>
   </header>
 
-  <!-- Settings -->
-  <div id="settings-panel">
-    <div class="setting-group">
-      <label>Category</label>
-      <select id="sel-category">
-        <option value="">All</option>
-        <option value="Literature">Literature</option>
-        <option value="History">History</option>
-        <option value="Science">Science</option>
-        <option value="Fine Arts">Fine Arts</option>
-        <option value="Religion">Religion</option>
-        <option value="Mythology">Mythology</option>
-        <option value="Philosophy">Philosophy</option>
-        <option value="Social Science">Social Science</option>
-        <option value="Current Events">Current Events</option>
-        <option value="Geography">Geography</option>
-        <option value="Other Academic">Other Academic</option>
-        <option value="Trash">Trash</option>
-      </select>
+  <!-- Settings drawer (hidden by default) -->
+  <div id="settings-drawer">
+
+    <!-- Question filters -->
+    <div class="drawer-section">
+      <div class="drawer-section-title">Question Filters</div>
+      <div class="setting-group">
+        <label>Category</label>
+        <select id="sel-category">
+          <option value="">All</option>
+          <option value="Literature">Literature</option>
+          <option value="History">History</option>
+          <option value="Science">Science</option>
+          <option value="Fine Arts">Fine Arts</option>
+          <option value="Religion">Religion</option>
+          <option value="Mythology">Mythology</option>
+          <option value="Philosophy">Philosophy</option>
+          <option value="Social Science">Social Science</option>
+          <option value="Current Events">Current Events</option>
+          <option value="Geography">Geography</option>
+          <option value="Other Academic">Other Academic</option>
+          <option value="Trash">Trash</option>
+        </select>
+      </div>
+      <div class="setting-group">
+        <label>Difficulty</label>
+        <select id="sel-difficulty">
+          <option value="">All</option>
+          <option value="1">1 — Middle School</option>
+          <option value="2">2</option>
+          <option value="3">3 — Easy HS</option>
+          <option value="4">4</option>
+          <option value="5">5 — Regular HS</option>
+          <option value="6">6 — Hard HS</option>
+          <option value="7">7 — Easy College</option>
+          <option value="8">8 — Regular College</option>
+          <option value="9">9 — Hard College</option>
+          <option value="10">10 — Open</option>
+        </select>
+      </div>
     </div>
-    <div class="setting-group">
-      <label>Difficulty</label>
-      <select id="sel-difficulty">
-        <option value="">All</option>
-        <option value="1">1 — Middle School</option>
-        <option value="2">2</option>
-        <option value="3">3 — Easy HS</option>
-        <option value="4">4</option>
-        <option value="5">5 — Regular HS</option>
-        <option value="6">6 — Hard HS</option>
-        <option value="7">7 — Easy College</option>
-        <option value="8">8 — Regular College</option>
-        <option value="9">9 — Hard College</option>
-        <option value="10">10 — Open</option>
-      </select>
+
+    <!-- Voice & speed -->
+    <div class="drawer-section">
+      <div class="drawer-section-title">Reader</div>
+      <div class="setting-group">
+        <label>Voice</label>
+        <select id="sel-voice">
+          <option value="">Loading…</option>
+        </select>
+      </div>
+      <div class="setting-group">
+        <label>Speed — <span id="speed-label">0.9×</span></label>
+        <input type="range" id="speed-slider" min="0.5" max="2.0" step="0.05" value="0.9" />
+      </div>
     </div>
-    <div class="setting-group">
-      <label>Voice</label>
-      <select id="sel-voice">
-        <option value="">Loading voices…</option>
-      </select>
+
+    <!-- ElevenLabs -->
+    <div class="drawer-section">
+      <div class="drawer-section-title">ElevenLabs (optional — human-quality voice)</div>
+      <div class="setting-group" style="flex:1 1 100%">
+        <label>API Key</label>
+        <input type="password" id="el-api-key" placeholder="sk_… paste your key here" autocomplete="off" />
+        <span id="el-status" class="off">Not configured</span>
+      </div>
+      <div class="setting-group" style="flex:1 1 100%">
+        <label>ElevenLabs Voice</label>
+        <select id="sel-el-voice">
+          <option value="">— enter API key first —</option>
+        </select>
+      </div>
     </div>
-    <div class="setting-group">
-      <label>Reading speed — <span id="speed-label">0.9×</span></label>
-      <input type="range" id="speed-slider" min="0.5" max="2.0" step="0.05" value="0.9" />
-    </div>
+
   </div>
 
   <!-- Meta strip -->
@@ -434,7 +493,7 @@
   <div id="question-card">
     <div id="empty-state">
       <div class="icon">📖</div>
-      <p>Tap <strong>New Question</strong> to start practicing</p>
+      <p>Tap <strong>New Question</strong> to start</p>
     </div>
     <div id="question-text" class="hidden"></div>
     <div id="progress-bar-wrap" class="hidden">
@@ -447,7 +506,6 @@
   <div id="buzz-section">
     <button id="btn-buzz" disabled>BUZZ</button>
     <div id="answer-input-row">
-      <!-- Mic listening UI -->
       <div id="mic-status">
         <span class="mic-icon">🎙️</span>
         <div>
@@ -456,10 +514,9 @@
         </div>
       </div>
       <button id="btn-cancel-mic">Cancel / type instead</button>
-      <!-- Fallback manual input -->
       <div id="fallback-row">
-        <input id="answer-input" type="text" placeholder="Your answer…" autocomplete="off"
-               autocorrect="off" autocapitalize="off" spellcheck="false" />
+        <input id="answer-input" type="text" placeholder="Your answer…"
+               autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
         <button id="btn-submit">Submit</button>
       </div>
     </div>
@@ -473,21 +530,19 @@
   </div>
 
 </div>
-
 <script>
 /* ═══════════════════════════════════════════════════════════════════
-   Speech Recognition setup
+   Speech Recognition
 ═══════════════════════════════════════════════════════════════════ */
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 const hasMic = !!SpeechRecognition;
-
 let recognition = null;
 if (hasMic) {
   recognition = new SpeechRecognition();
   recognition.lang = 'en-US';
-  recognition.continuous = false;      // stop after first result
-  recognition.interimResults = true;   // show live transcript while speaking
-  recognition.maxAlternatives = 3;     // try multiple guesses
+  recognition.continuous = false;
+  recognition.interimResults = true;
+  recognition.maxAlternatives = 3;
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -495,9 +550,9 @@ if (hasMic) {
 ═══════════════════════════════════════════════════════════════════ */
 const state = {
   tossup: null,
-  words: [],          // tokenised words (strings)
-  wordIdx: 0,         // current spoken word index
-  phase: 'idle',      // idle | loading | reading | buzzed | done
+  words: [],
+  wordIdx: -1,
+  phase: 'idle',       // idle | loading | reading | buzzed | done
   utterance: null,
   synth: window.speechSynthesis,
   score: { correct: 0, total: 0 },
@@ -505,44 +560,58 @@ const state = {
   buzzWordIdx: 0,
   promptCount: 0,
   micActive: false,
+  elAudio: null,       // current ElevenLabs Audio object
 };
 
 /* ═══════════════════════════════════════════════════════════════════
    DOM refs
 ═══════════════════════════════════════════════════════════════════ */
 const $ = id => document.getElementById(id);
-const qCard        = $('question-card');
-const qText        = $('question-text');
-const emptyState   = $('empty-state');
-const progressBar  = $('progress-bar');
-const progressWrap = $('progress-bar-wrap');
-const answerReveal = $('answer-reveal');
-const metaStrip    = $('meta-strip');
-const btnBuzz      = $('btn-buzz');
-const btnSkip      = $('btn-skip');
-const btnNew       = $('btn-new');
-const answerRow    = $('answer-input-row');
-const micStatus    = $('mic-status');
-const micTranscript= $('mic-transcript');
-const btnCancelMic = $('btn-cancel-mic');
-const fallbackRow  = $('fallback-row');
-const answerInput  = $('answer-input');
-const btnSubmit    = $('btn-submit');
-const resultBanner = $('result-banner');
-const speedSlider  = $('speed-slider');
-const speedLabel   = $('speed-label');
-const scoreCorrect = $('score-correct');
-const scoreTotal   = $('score-total');
-const scorePct     = $('score-pct');
-const selCategory  = $('sel-category');
-const selDiff      = $('sel-difficulty');
+const qCard         = $('question-card');
+const qText         = $('question-text');
+const emptyState    = $('empty-state');
+const progressBar   = $('progress-bar');
+const progressWrap  = $('progress-bar-wrap');
+const answerReveal  = $('answer-reveal');
+const metaStrip     = $('meta-strip');
+const btnBuzz       = $('btn-buzz');
+const btnSkip       = $('btn-skip');
+const btnNew        = $('btn-new');
+const answerRow     = $('answer-input-row');
+const micStatus     = $('mic-status');
+const micTranscript = $('mic-transcript');
+const btnCancelMic  = $('btn-cancel-mic');
+const fallbackRow   = $('fallback-row');
+const answerInput   = $('answer-input');
+const btnSubmit     = $('btn-submit');
+const resultBanner  = $('result-banner');
+const speedSlider   = $('speed-slider');
+const speedLabel    = $('speed-label');
+const scoreCorrect  = $('score-correct');
+const scoreTotal    = $('score-total');
+const scorePct      = $('score-pct');
+const selCategory   = $('sel-category');
+const selDiff       = $('sel-difficulty');
+const btnSettings   = $('btn-settings');
+const settingsDrawer= $('settings-drawer');
+const elApiKeyInput = $('el-api-key');
+const elStatus      = $('el-status');
+const selElVoice    = $('sel-el-voice');
+
+/* ═══════════════════════════════════════════════════════════════════
+   Settings drawer toggle
+═══════════════════════════════════════════════════════════════════ */
+btnSettings.addEventListener('click', () => {
+  const open = settingsDrawer.classList.toggle('open');
+  btnSettings.classList.toggle('open', open);
+});
 
 /* ═══════════════════════════════════════════════════════════════════
    Helpers
 ═══════════════════════════════════════════════════════════════════ */
 function setPhase(p) {
   state.phase = p;
-  qCard.className = p === 'idle' || p === 'loading' ? '' : p;
+  qCard.className = (p === 'idle' || p === 'loading') ? '' : p;
 }
 
 function updateScore(result) {
@@ -550,37 +619,27 @@ function updateScore(result) {
   if (result === 'correct') state.score.correct++;
   scoreTotal.textContent   = state.score.total;
   scoreCorrect.textContent = state.score.correct;
-  const pct = Math.round((state.score.correct / state.score.total) * 100);
-  scorePct.textContent = state.score.total > 0 ? pct + '%' : '—';
+  scorePct.textContent = state.score.total > 0
+    ? Math.round((state.score.correct / state.score.total) * 100) + '%' : '—';
 }
 
 function difficultyLabel(d) {
-  const labels = { 1:'MS', 2:'Easy HS', 3:'Easy HS', 4:'HS', 5:'Reg HS',
-                   6:'Hard HS', 7:'Easy Coll', 8:'Coll', 9:'Hard Coll', 10:'Open' };
-  return labels[d] ? `Diff ${d} · ${labels[d]}` : `Diff ${d}`;
+  const m = {1:'MS',2:'Easy HS',3:'Easy HS',4:'HS',5:'Reg HS',6:'Hard HS',7:'Easy Coll',8:'Coll',9:'Hard Coll',10:'Open'};
+  return m[d] ? `Diff ${d} · ${m[d]}` : `Diff ${d}`;
 }
 
-function cleanQuestion(text) {
-  return text.replace(/\(\*\)\s*/g, '').trim();
-}
-
-function tokenize(text) {
-  return text.split(/(\s+)/).filter(Boolean);
-}
+function cleanQuestion(text) { return text.replace(/\(\*\)\s*/g, '').trim(); }
+function tokenize(text)       { return text.split(/(\s+)/).filter(Boolean); }
 
 /* ═══════════════════════════════════════════════════════════════════
    Meta badges
 ═══════════════════════════════════════════════════════════════════ */
-function renderMeta(tossup) {
+function renderMeta(t) {
   metaStrip.innerHTML = '';
-  if (!tossup) return;
-  const badges = [
-    { text: tossup.category || 'Unknown', cls: 'cat' },
-    { text: tossup.subcategory || '', cls: 'cat' },
-    { text: difficultyLabel(tossup.difficulty), cls: 'diff' },
-    { text: tossup.set?.name || '', cls: 'set' },
-  ];
-  badges.filter(b => b.text).forEach(b => {
+  if (!t) return;
+  [{ text: t.category, cls:'cat' }, { text: t.subcategory, cls:'cat' },
+   { text: difficultyLabel(t.difficulty), cls:'diff' }, { text: t.set?.name, cls:'set' }]
+  .filter(b => b.text).forEach(b => {
     const el = document.createElement('span');
     el.className = `badge ${b.cls}`;
     el.textContent = b.text;
@@ -589,17 +648,15 @@ function renderMeta(tossup) {
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   Question rendering
+   Question word rendering
 ═══════════════════════════════════════════════════════════════════ */
 function renderQuestionWords(upTo) {
-  const fragments = state.words.map((w, i) => {
+  qText.innerHTML = state.words.map((w, i) => {
     if (/^\s+$/.test(w)) return w;
-    if (i < upTo)  return `<span class="word" data-i="${i}">${w}</span>`;
-    if (i === upTo) return `<span class="word spoken" data-i="${i}">${w}</span>`;
-    return `<span class="word unspoken" data-i="${i}">${w}</span>`;
-  });
-  qText.innerHTML = fragments.join('');
-  // scroll the spoken word into view within the card, not the whole page
+    if (i < upTo)   return `<span class="word">${w}</span>`;
+    if (i === upTo) return `<span class="word spoken">${w}</span>`;
+    return `<span class="word unspoken">${w}</span>`;
+  }).join('');
   const el = qText.querySelector('.spoken');
   if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
@@ -616,22 +673,20 @@ async function fetchTossup() {
   hideAll();
 
   const params = new URLSearchParams({ number: 1 });
-  const cat  = selCategory.value;
-  const diff = selDiff.value;
-  if (cat)  params.set('categories', cat);
-  if (diff) params.set('difficulties', diff);
+  if (selCategory.value)  params.set('categories', selCategory.value);
+  if (selDiff.value)      params.set('difficulties', selDiff.value);
 
   try {
-    const res = await fetch(`https://www.qbreader.org/api/random-tossup?${params}`);
-    if (!res.ok) throw new Error('Network error');
+    const res  = await fetch(`https://www.qbreader.org/api/random-tossup?${params}`);
+    if (!res.ok) throw new Error();
     const data = await res.json();
     const tossup = data.tossups?.[0];
-    if (!tossup) throw new Error('No tossup returned');
+    if (!tossup) throw new Error();
 
-    state.tossup    = tossup;
+    state.tossup      = tossup;
     state.promptCount = 0;
-    state.words     = tokenize(cleanQuestion(tossup.question_sanitized));
-    state.wordIdx   = -1;
+    state.words       = tokenize(cleanQuestion(tossup.question_sanitized));
+    state.wordIdx     = -1;
 
     renderMeta(tossup);
     emptyState.classList.add('hidden');
@@ -642,97 +697,250 @@ async function fetchTossup() {
     answerReveal.style.display = 'none';
     answerReveal.className = '';
 
-    btnNew.disabled  = false;
+    btnNew.disabled   = false;
     btnNew.textContent = 'New Question';
-    btnSkip.disabled = false;
+    btnSkip.disabled  = false;
 
     startReading();
-  } catch (e) {
-    btnNew.disabled  = false;
+  } catch {
+    btnNew.disabled   = false;
     btnNew.textContent = 'New Question';
-    btnSkip.disabled = false;
-    qText.innerHTML = `<span style="color:var(--red)">Error loading question. Check your connection and try again.</span>`;
+    btnSkip.disabled  = false;
+    qText.innerHTML   = `<span style="color:var(--red)">Error loading. Check connection and try again.</span>`;
     qText.classList.remove('hidden');
     setPhase('idle');
   }
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   Voice selection
-   Priority order for English voices (most natural first):
-   iOS:     Siri / "Enhanced" / "Premium" > "Compact" > default
-   Android: Wavenet / Neural > default
-   Desktop: Google/Microsoft Neural > default
+   Web Speech — voice selection
 ═══════════════════════════════════════════════════════════════════ */
 const selVoice = $('sel-voice');
-let voices = [];
-let chosenVoice = null;
+let wsVoices = [];
+let chosenWsVoice = null;
 
-// Score a voice — higher = better
 function scoreVoice(v) {
   if (!v.lang.startsWith('en')) return -1;
-  let score = 0;
+  let s = 0;
   const n = v.name.toLowerCase();
-  // Tier 1 — genuinely neural / premium voices
-  if (n.includes('premium'))           score += 100;
-  if (n.includes('enhanced'))          score += 90;
-  if (n.includes('neural'))            score += 90;
-  if (n.includes('wavenet'))           score += 90;
-  if (n.includes('siri'))              score += 80;
-  // Tier 2 — named natural voices
-  if (n.includes('samantha'))          score += 70; // iOS default high-quality
-  if (n.includes('daniel'))            score += 65; // UK
-  if (n.includes('karen'))             score += 65; // AU
-  if (n.includes('moira'))             score += 60;
-  if (n.includes('fiona'))             score += 60;
-  if (n.includes('google'))            score += 55;
-  if (n.includes('microsoft'))         score += 50;
-  // Tier 3 — compact/basic (avoid)
-  if (n.includes('compact'))           score -= 30;
-  // Prefer en-US, then en-GB, then other en-*
-  if (v.lang === 'en-US')              score += 10;
-  else if (v.lang === 'en-GB')         score += 5;
-  return score;
+  if (n.includes('premium'))  s += 100;
+  if (n.includes('enhanced')) s += 90;
+  if (n.includes('neural'))   s += 90;
+  if (n.includes('wavenet'))  s += 90;
+  if (n.includes('siri'))     s += 80;
+  if (n.includes('samantha')) s += 70;
+  if (n.includes('daniel'))   s += 65;
+  if (n.includes('karen'))    s += 65;
+  if (n.includes('moira'))    s += 60;
+  if (n.includes('google'))   s += 55;
+  if (n.includes('microsoft'))s += 50;
+  if (n.includes('compact'))  s -= 30;
+  if (v.lang === 'en-US')     s += 10;
+  else if (v.lang === 'en-GB')s += 5;
+  return s;
 }
 
 function populateVoices() {
-  voices = state.synth.getVoices().filter(v => v.lang.startsWith('en'));
-  if (!voices.length) return;
-
-  // Sort best → worst
-  voices.sort((a, b) => scoreVoice(b) - scoreVoice(a));
-
+  wsVoices = state.synth.getVoices().filter(v => v.lang.startsWith('en'));
+  if (!wsVoices.length) return;
+  wsVoices.sort((a, b) => scoreVoice(b) - scoreVoice(a));
   selVoice.innerHTML = '';
-  voices.forEach((v, i) => {
+  // ElevenLabs placeholder at the top (only visible when key is set)
+  const elOpt = document.createElement('option');
+  elOpt.value = '__elevenlabs__';
+  elOpt.id = 'opt-elevenlabs';
+  elOpt.textContent = '⚡ ElevenLabs (see settings)';
+  elOpt.classList.add('hidden');
+  selVoice.appendChild(elOpt);
+  wsVoices.forEach((v, i) => {
     const opt = document.createElement('option');
     opt.value = i;
-    // Show a quality hint next to the name
     const score = scoreVoice(v);
-    const tier = score >= 80 ? '★★★' : score >= 50 ? '★★' : score >= 20 ? '★' : '';
-    opt.textContent = `${tier ? tier + ' ' : ''}${v.name} (${v.lang})`;
+    const tier  = score >= 80 ? '★★★ ' : score >= 50 ? '★★ ' : score >= 20 ? '★ ' : '';
+    opt.textContent = `${tier}${v.name} (${v.lang})`;
     selVoice.appendChild(opt);
   });
-
-  // Auto-select best
-  chosenVoice = voices[0];
+  chosenWsVoice = wsVoices[0];
   selVoice.value = '0';
 }
 
-// Voices load asynchronously on some browsers
 state.synth.onvoiceschanged = populateVoices;
-populateVoices(); // also call immediately in case already loaded
+populateVoices();
 
 selVoice.addEventListener('change', () => {
-  const idx = parseInt(selVoice.value, 10);
-  chosenVoice = voices[idx] || null;
+  if (selVoice.value === '__elevenlabs__') return; // handled by EL
+  chosenWsVoice = wsVoices[parseInt(selVoice.value, 10)] || null;
 });
 
 /* ═══════════════════════════════════════════════════════════════════
-   TTS chunks
-   Split ONLY on sentence-ending punctuation (.!?) so the voice
-   never cuts mid-phrase. Each chunk is one complete sentence.
-   iOS has a ~220-char utterance limit before it silently truncates,
-   so we also hard-split very long sentences there.
+   ElevenLabs integration
+═══════════════════════════════════════════════════════════════════ */
+// Persist key in localStorage so user doesn't retype every visit
+const EL_KEY_STORE = 'el_api_key';
+const EL_VOICE_STORE = 'el_voice_id';
+
+let elApiKey  = localStorage.getItem(EL_KEY_STORE) || '';
+let elVoiceId = localStorage.getItem(EL_VOICE_STORE) || '';
+
+if (elApiKey) {
+  elApiKeyInput.value = elApiKey;
+  setElStatus('checking');
+  loadElVoices();
+}
+
+elApiKeyInput.addEventListener('change', () => {
+  elApiKey = elApiKeyInput.value.trim();
+  localStorage.setItem(EL_KEY_STORE, elApiKey);
+  if (elApiKey) { setElStatus('checking'); loadElVoices(); }
+  else          { setElStatus('off'); resetElVoiceSelect(); }
+});
+
+function setElStatus(s, msg) {
+  elStatus.className = s;
+  elStatus.textContent =
+    s === 'ok'       ? `✓ Connected — ${msg || ''}` :
+    s === 'err'      ? `✗ ${msg || 'Invalid key'}` :
+    s === 'checking' ? 'Checking…' : 'Not configured';
+}
+
+function resetElVoiceSelect() {
+  selElVoice.innerHTML = '<option value="">— enter API key first —</option>';
+  // Hide ElevenLabs option in voice picker
+  const elOpt = document.getElementById('opt-elevenlabs');
+  if (elOpt) elOpt.classList.add('hidden');
+  if (selVoice.value === '__elevenlabs__') {
+    selVoice.value = '0';
+    chosenWsVoice = wsVoices[0] || null;
+  }
+}
+
+async function loadElVoices() {
+  try {
+    const res = await fetch('https://api.elevenlabs.io/v1/voices', {
+      headers: { 'xi-api-key': elApiKey }
+    });
+    if (!res.ok) throw new Error('bad key');
+    const data = await res.json();
+    const voices = data.voices || [];
+
+    selElVoice.innerHTML = '';
+    voices.forEach(v => {
+      const opt = document.createElement('option');
+      opt.value = v.voice_id;
+      opt.textContent = `${v.name}${v.labels?.accent ? ' · ' + v.labels.accent : ''}`;
+      selElVoice.appendChild(opt);
+    });
+
+    // Restore saved voice or default to first
+    if (elVoiceId && voices.find(v => v.voice_id === elVoiceId)) {
+      selElVoice.value = elVoiceId;
+    } else if (voices.length) {
+      elVoiceId = voices[0].voice_id;
+      selElVoice.value = elVoiceId;
+      localStorage.setItem(EL_VOICE_STORE, elVoiceId);
+    }
+
+    setElStatus('ok', voices.length + ' voices loaded');
+
+    // Show ElevenLabs option in the main voice picker and auto-select it
+    const elOpt = document.getElementById('opt-elevenlabs');
+    if (elOpt) {
+      elOpt.classList.remove('hidden');
+      elOpt.textContent = `⚡ ElevenLabs — ${selElVoice.options[selElVoice.selectedIndex]?.textContent || ''}`;
+    }
+    selVoice.value = '__elevenlabs__';
+
+  } catch {
+    setElStatus('err', 'Check your API key');
+    resetElVoiceSelect();
+  }
+}
+
+selElVoice.addEventListener('change', () => {
+  elVoiceId = selElVoice.value;
+  localStorage.setItem(EL_VOICE_STORE, elVoiceId);
+  // Update the label in main voice picker
+  const elOpt = document.getElementById('opt-elevenlabs');
+  if (elOpt) elOpt.textContent = `⚡ ElevenLabs — ${selElVoice.options[selElVoice.selectedIndex]?.textContent || ''}`;
+});
+
+function usingElevenLabs() {
+  return selVoice.value === '__elevenlabs__' && elApiKey && elVoiceId;
+}
+
+/* ── ElevenLabs speak ── */
+// Streams the full question text through ElevenLabs TTS.
+// Word highlight is driven by a timer (EL doesn't give word events).
+async function speakWithElevenLabs(text, onWordTick, onEnd, onError) {
+  // Stop any previous audio
+  if (state.elAudio) { state.elAudio.pause(); state.elAudio = null; }
+
+  const rate = getRate();
+  try {
+    const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${elVoiceId}/stream`, {
+      method: 'POST',
+      headers: {
+        'xi-api-key': elApiKey,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        text,
+        model_id: 'eleven_turbo_v2',        // lowest latency model
+        voice_settings: {
+          stability: 0.45,                   // slight variation = more natural
+          similarity_boost: 0.80,
+          style: 0.20,
+          use_speaker_boost: true,
+        },
+      }),
+    });
+
+    if (!res.ok) throw new Error('EL API error');
+
+    const blob  = await res.blob();
+    const url   = URL.createObjectURL(blob);
+    const audio = new Audio(url);
+    state.elAudio = audio;
+
+    // Playback rate maps to our speed slider
+    audio.playbackRate = Math.min(Math.max(rate, 0.5), 2.0);
+
+    // Drive word highlight by timer since EL gives no word events
+    const words      = text.split(/\s+/).filter(Boolean);
+    const msPerWord  = (60 / (150 * rate)) * 1000;
+    let   wordPos    = 0;
+    const ticker = setInterval(() => {
+      if (state.phase !== 'reading') { clearInterval(ticker); return; }
+      if (wordPos < words.length) { onWordTick(wordPos); wordPos++; }
+    }, msPerWord);
+
+    audio.onended = () => {
+      clearInterval(ticker);
+      URL.revokeObjectURL(url);
+      state.elAudio = null;
+      onEnd();
+    };
+    audio.onerror = () => {
+      clearInterval(ticker);
+      URL.revokeObjectURL(url);
+      state.elAudio = null;
+      onError();
+    };
+
+    audio.play();
+  } catch(e) {
+    onError(e);
+  }
+}
+
+function stopElAudio() {
+  if (state.elAudio) { state.elAudio.pause(); state.elAudio = null; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   TTS — Web Speech chunks
+   Split only on sentence-ending punctuation. 25-word safety limit
+   prevents iOS silent truncation.
 ═══════════════════════════════════════════════════════════════════ */
 let ttsChunks = [];
 let chunkIdx  = 0;
@@ -740,65 +948,44 @@ let chunkIdx  = 0;
 function buildChunks(words) {
   const chunks = [];
   let buf = [];
-
   const flush = () => {
     if (!buf.length) return;
-    const last = buf[buf.length - 1].word;
-    chunks.push({
-      words:     [...buf],
-      startIdx:  buf[0].idx,
-      endIdx:    buf[buf.length - 1].idx,
-      pause:     pauseAfter(last),
-    });
+    const last = buf[buf.length-1].word;
+    chunks.push({ words:[...buf], startIdx:buf[0].idx, endIdx:buf[buf.length-1].idx, pause:pauseAfter(last) });
     buf = [];
   };
-
   for (let i = 0; i < words.length; i++) {
     const w = words[i];
     if (/^\s+$/.test(w)) continue;
-    buf.push({ word: w, idx: i });
-
-    const isSentenceEnd = /[.!?]$/.test(w);
-    // Safety split for iOS: hard limit at ~25 words only when no sentence
-    // boundary has appeared — prevents silent truncation
-    const tooLong = buf.length >= 25;
-
-    if (isSentenceEnd || tooLong) flush();
+    buf.push({ word:w, idx:i });
+    if (/[.!?]$/.test(w) || buf.length >= 25) flush();
   }
-  flush(); // remaining words
+  flush();
   return chunks;
 }
 
-// Pause duration (ms) after a chunk
-function pauseAfter(word) {
-  if (/[.!?]$/.test(word)) return 250;  // sentence end — clear breath
-  if (/[;:]$/.test(word))  return 140;  // clause
-  if (/,$/.test(word))     return 80;   // comma
-  return 40;                            // mid-sentence hard split — minimal gap
+function pauseAfter(w) {
+  if (/[.!?]$/.test(w)) return 250;
+  if (/[;:]$/.test(w))  return 140;
+  if (/,$/.test(w))     return 80;
+  return 40;
 }
 
-function getRate() {
-  return parseFloat(speedSlider.value);
-}
+function getRate() { return parseFloat(speedSlider.value); }
 
 function speakChunk(chunkI) {
   if (state.phase !== 'reading') return;
   if (chunkI >= ttsChunks.length) {
-    setPhase('done');
-    btnBuzz.disabled = true;
-    revealAnswer(null, 'done');
-    return;
+    setPhase('done'); btnBuzz.disabled = true; revealAnswer(null, 'done'); return;
   }
-
   const chunk = ttsChunks[chunkI];
   const rate  = getRate();
   const text  = chunk.words.map(w => w.word).join(' ');
   const utter = new SpeechSynthesisUtterance(text);
-
   utter.rate  = rate;
-  utter.pitch = 0.97;   // very slightly lower than 1.0 — warmer, less robotic
+  utter.pitch = 0.97;
   utter.lang  = 'en-US';
-  if (chosenVoice) utter.voice = chosenVoice;
+  if (chosenWsVoice) utter.voice = chosenWsVoice;
 
   state.utterance = utter;
   chunkIdx = chunkI;
@@ -808,28 +995,23 @@ function speakChunk(chunkI) {
   let boundaryFired = false;
 
   utter.onboundary = (e) => {
-    if (e.name !== 'word') return;
-    if (state.phase !== 'reading') return;
+    if (e.name !== 'word' || state.phase !== 'reading') return;
     boundaryFired = true;
-    let charCount = 0;
+    let cc = 0;
     for (let wi = 0; wi < chunk.words.length; wi++) {
-      charCount += chunk.words[wi].word.length + (wi > 0 ? 1 : 0);
-      if (charCount >= e.charIndex + 1) { localWordPos = wi; break; }
+      cc += chunk.words[wi].word.length + (wi > 0 ? 1 : 0);
+      if (cc >= e.charIndex + 1) { localWordPos = wi; break; }
     }
-    const globalIdx = chunk.words[localWordPos]?.idx ?? chunk.startIdx;
-    state.wordIdx = globalIdx;
-    renderQuestionWords(globalIdx);
-    updateProgress(globalIdx);
+    const idx = chunk.words[localWordPos]?.idx ?? chunk.startIdx;
+    state.wordIdx = idx; renderQuestionWords(idx); updateProgress(idx);
   };
 
   let timerWordPos = 0;
   const timerInterval = setInterval(() => {
     if (state.phase !== 'reading') { clearInterval(timerInterval); return; }
     if (!boundaryFired) {
-      const globalIdx = chunk.words[timerWordPos]?.idx ?? chunk.startIdx;
-      state.wordIdx = globalIdx;
-      renderQuestionWords(globalIdx);
-      updateProgress(globalIdx);
+      const idx = chunk.words[timerWordPos]?.idx ?? chunk.startIdx;
+      state.wordIdx = idx; renderQuestionWords(idx); updateProgress(idx);
       timerWordPos = Math.min(timerWordPos + 1, chunk.words.length - 1);
     }
   }, msPerWord);
@@ -838,12 +1020,9 @@ function speakChunk(chunkI) {
     clearInterval(timerInterval);
     if (state.phase !== 'reading') return;
     state.wordIdx = chunk.endIdx;
-    renderQuestionWords(chunk.endIdx);
-    updateProgress(chunk.endIdx);
-    // Natural pause between chunks before speaking next one
+    renderQuestionWords(chunk.endIdx); updateProgress(chunk.endIdx);
     setTimeout(() => speakChunk(chunkI + 1), chunk.pause);
   };
-
   utter.onerror = () => {
     clearInterval(timerInterval);
     if (state.phase === 'reading') speakChunk(chunkI + 1);
@@ -852,15 +1031,57 @@ function speakChunk(chunkI) {
   state.synth.speak(utter);
 }
 
+/* ── startReading — dispatches to ElevenLabs or Web Speech ── */
 function startReading() {
   state.synth.cancel();
+  stopElAudio();
   clearTimeout(state.readingTimer);
-  ttsChunks     = buildChunks(state.words);
-  chunkIdx      = 0;
-  state.wordIdx = -1;
+
   setPhase('reading');
   btnBuzz.disabled = false;
-  state.readingTimer = setTimeout(() => speakChunk(0), 350);
+
+  if (usingElevenLabs()) {
+    // ElevenLabs: send full sanitized text, drive highlight by word timer
+    const fullText = cleanQuestion(state.tossup.question_sanitized);
+    const allWords = state.words.filter(w => !/^\s+$/.test(w)); // non-space tokens
+
+    state.readingTimer = setTimeout(() => {
+      speakWithElevenLabs(
+        fullText,
+        (wordPos) => {
+          // wordPos = index into allWords (no whitespace)
+          // map back to state.words index
+          let count = -1;
+          for (let i = 0; i < state.words.length; i++) {
+            if (!/^\s+$/.test(state.words[i])) count++;
+            if (count === wordPos) {
+              state.wordIdx = i;
+              renderQuestionWords(i);
+              updateProgress(i);
+              break;
+            }
+          }
+        },
+        () => {
+          // onEnd
+          if (state.phase !== 'reading') return;
+          renderQuestionWords(state.words.length - 1);
+          progressBar.style.width = '100%';
+          setPhase('done'); btnBuzz.disabled = true; revealAnswer(null, 'done');
+        },
+        () => {
+          // onError — fall back to Web Speech silently
+          if (state.phase !== 'reading') return;
+          ttsChunks = buildChunks(state.words); chunkIdx = 0;
+          speakChunk(0);
+        }
+      );
+    }, 300);
+  } else {
+    // Web Speech
+    ttsChunks = buildChunks(state.words); chunkIdx = 0; state.wordIdx = -1;
+    state.readingTimer = setTimeout(() => speakChunk(0), 350);
+  }
 }
 
 function updateProgress(wordIdx) {
@@ -870,31 +1091,30 @@ function updateProgress(wordIdx) {
     total++;
     if (i <= wordIdx) spoken++;
   }
-  const pct = total > 0 ? Math.min(100, Math.round((spoken / total) * 100)) : 0;
-  progressBar.style.width = pct + '%';
+  progressBar.style.width = total > 0 ? Math.min(100, Math.round((spoken/total)*100)) + '%' : '0%';
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   Buzz — pause TTS, start mic
+   Buzz
 ═══════════════════════════════════════════════════════════════════ */
 function doBuzz() {
   if (state.phase !== 'reading') return;
-  state.synth.pause();
+  // Pause whichever engine is active
+  if (usingElevenLabs()) {
+    if (state.elAudio) state.elAudio.pause();
+  } else {
+    state.synth.pause();
+  }
   state.buzzWordIdx = state.wordIdx;
   setPhase('buzzed');
   btnBuzz.disabled = true;
   answerRow.style.display = 'flex';
-
-  if (hasMic) {
-    showMicUI();
-    startMic();
-  } else {
-    showFallbackUI();
-  }
+  if (hasMic) { showMicUI(); startMic(); }
+  else        { showFallbackUI(); }
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   Mic UI helpers
+   Mic UI
 ═══════════════════════════════════════════════════════════════════ */
 function showMicUI() {
   micStatus.style.display = 'flex';
@@ -902,7 +1122,6 @@ function showMicUI() {
   btnCancelMic.style.display = 'block';
   fallbackRow.style.display = 'none';
 }
-
 function showFallbackUI() {
   micStatus.style.display = 'none';
   btnCancelMic.style.display = 'none';
@@ -910,7 +1129,6 @@ function showFallbackUI() {
   answerInput.value = '';
   answerInput.focus();
 }
-
 function hideBuzzUI() {
   answerRow.style.display = 'none';
   micStatus.style.display = 'none';
@@ -928,34 +1146,23 @@ function startMic() {
   micTranscript.textContent = '';
 
   recognition.onresult = (e) => {
-    // Show live interim transcript
-    let interim = '';
-    let final = '';
+    let interim = '', final = '';
     for (let i = e.resultIndex; i < e.results.length; i++) {
       const t = e.results[i][0].transcript;
-      if (e.results[i].isFinal) final += t;
-      else interim += t;
+      if (e.results[i].isFinal) final += t; else interim += t;
     }
     micTranscript.textContent = final || interim;
-
-    // As soon as we have a final result, submit it
-    if (final.trim()) {
-      stopMic();
-      submitAnswer(final.trim());
-    }
+    if (final.trim()) { stopMic(); submitAnswer(final.trim()); }
   };
 
   recognition.onerror = (e) => {
     state.micActive = false;
     if (e.error === 'no-speech') {
-      // No speech detected — show fallback
       micTranscript.textContent = 'No speech detected.';
       setTimeout(showFallbackUI, 800);
     } else if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
-      micStatus.style.display = 'none';
-      btnCancelMic.style.display = 'none';
       showFallbackUI();
-      showPrompt('Mic access denied. Type your answer below.');
+      showPromptBanner('Mic access denied. Type your answer below.');
     } else {
       micTranscript.textContent = `Mic error: ${e.error}`;
       setTimeout(showFallbackUI, 1000);
@@ -964,34 +1171,22 @@ function startMic() {
 
   recognition.onend = () => {
     state.micActive = false;
-    // If we ended without a result (e.g. silence timeout), fall back to typing
     if (state.phase === 'buzzed' && answerRow.style.display !== 'none') {
-      if (!micTranscript.textContent || micTranscript.textContent.startsWith('No speech')) {
+      if (!micTranscript.textContent || micTranscript.textContent.startsWith('No speech'))
         showFallbackUI();
-      }
     }
   };
 
-  try {
-    recognition.start();
-  } catch (err) {
-    // already running — stop and restart
-    recognition.stop();
-    setTimeout(() => { try { recognition.start(); } catch(_) { showFallbackUI(); } }, 300);
-  }
+  try { recognition.start(); }
+  catch { recognition.stop(); setTimeout(() => { try { recognition.start(); } catch { showFallbackUI(); } }, 300); }
 }
 
 function stopMic() {
-  if (!recognition) return;
   state.micActive = false;
-  try { recognition.stop(); } catch(_) {}
+  try { recognition?.stop(); } catch {}
 }
 
-/* cancel mic → fall back to typing */
-btnCancelMic.addEventListener('click', () => {
-  stopMic();
-  showFallbackUI();
-});
+btnCancelMic.addEventListener('click', () => { stopMic(); showFallbackUI(); });
 
 /* ═══════════════════════════════════════════════════════════════════
    Answer checking
@@ -1000,17 +1195,14 @@ async function submitAnswer(given) {
   given = (given || answerInput.value || '').trim();
   if (!given) return;
 
-  // Show what was heard/typed while we check
   hideBuzzUI();
   resultBanner.className = 'prompt';
   resultBanner.style.display = 'block';
   resultBanner.innerHTML = `<span class="spinner"></span> Checking: "<em>${given}</em>"`;
 
-  const answerline = state.tossup.answer_sanitized;
   try {
-    const url = `https://www.qbreader.org/api/check-answer?` +
-      new URLSearchParams({ answerline, givenAnswer: given });
-    const res  = await fetch(url);
+    const res  = await fetch('https://www.qbreader.org/api/check-answer?' +
+      new URLSearchParams({ answerline: state.tossup.answer_sanitized, givenAnswer: given }));
     const data = await res.json();
     const dir  = data.directive;
 
@@ -1018,17 +1210,12 @@ async function submitAnswer(given) {
       handleResult('correct', given);
     } else if (dir === 'prompt') {
       state.promptCount++;
-      if (state.promptCount >= 3) {
-        handleResult('wrong', given);
-      } else {
-        // Show prompt and re-open mic
-        resultBanner.className = 'prompt';
-        resultBanner.style.display = 'block';
-        resultBanner.textContent = `↩ PROMPT: ${data.promptString || 'Can you be more specific?'}`;
-        answerRow.style.display = 'flex';
-        if (hasMic) { showMicUI(); startMic(); }
-        else { showFallbackUI(); }
-      }
+      if (state.promptCount >= 3) { handleResult('wrong', given); return; }
+      resultBanner.className = 'prompt';
+      resultBanner.style.display = 'block';
+      resultBanner.textContent = `↩ PROMPT: ${data.promptString || 'Can you be more specific?'}`;
+      answerRow.style.display = 'flex';
+      if (hasMic) { showMicUI(); startMic(); } else showFallbackUI();
     } else {
       handleResult('wrong', given);
     }
@@ -1037,36 +1224,23 @@ async function submitAnswer(given) {
     resultBanner.style.display = 'block';
     resultBanner.textContent = '⚠ Network error. Try again.';
     answerRow.style.display = 'flex';
-    if (hasMic) { showMicUI(); startMic(); }
-    else { showFallbackUI(); }
+    if (hasMic) { showMicUI(); startMic(); } else showFallbackUI();
   }
 }
 
-function showPrompt(msg) {
+function showPromptBanner(msg) {
   resultBanner.className = 'prompt';
   resultBanner.style.display = 'block';
   resultBanner.textContent = msg;
 }
 
 function handleResult(result, given) {
-  state.synth.cancel();
-  stopMic();
-  setPhase('done');
-  hideBuzzUI();
-  btnBuzz.disabled = true;
-
+  state.synth.cancel(); stopElAudio(); stopMic();
+  setPhase('done'); hideBuzzUI(); btnBuzz.disabled = true;
   updateScore(result === 'correct' ? 'correct' : 'wrong');
-
-  if (result === 'correct') {
-    resultBanner.className = 'correct';
-    resultBanner.style.display = 'block';
-    resultBanner.textContent = `✓ CORRECT — "${given}"`;
-  } else {
-    resultBanner.className = 'wrong';
-    resultBanner.style.display = 'block';
-    resultBanner.textContent = `✗ WRONG — you said: "${given}"`;
-  }
-
+  resultBanner.className = result;
+  resultBanner.style.display = 'block';
+  resultBanner.textContent = result === 'correct' ? `✓ CORRECT — "${given}"` : `✗ WRONG — you said: "${given}"`;
   revealAnswer(result, 'answered');
   renderQuestionWords(state.words.length - 1);
   progressBar.style.width = '100%';
@@ -1078,31 +1252,23 @@ function handleResult(result, given) {
 function revealAnswer(result, reason) {
   const t = state.tossup;
   if (!t) return;
-  const cleanAnswer = t.answer_sanitized
-    .replace(/\[.*?\]/g, '')
-    .replace(/\s+/g, ' ')
-    .trim();
+  const clean = t.answer_sanitized.replace(/\[.*?\]/g, '').replace(/\s+/g, ' ').trim();
   answerReveal.style.display = 'block';
   answerReveal.className = result || '';
   answerReveal.innerHTML = `
     <div class="label">${reason === 'done' ? "Time's up — Answer" : 'Answer'}</div>
-    <div class="answer-text">${cleanAnswer}</div>
-  `;
+    <div class="answer-text">${clean}</div>`;
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   Skip / reveal
+   Skip
 ═══════════════════════════════════════════════════════════════════ */
 function doSkip() {
   if (state.phase === 'idle' || state.phase === 'loading') return;
-  state.synth.cancel();
-  stopMic();
-  clearTimeout(state.readingTimer);
+  state.synth.cancel(); stopElAudio(); stopMic(); clearTimeout(state.readingTimer);
   if (state.phase === 'reading' || state.phase === 'buzzed') {
     if (state.phase === 'buzzed') updateScore('wrong');
-    setPhase('done');
-    hideBuzzUI();
-    btnBuzz.disabled = true;
+    setPhase('done'); hideBuzzUI(); btnBuzz.disabled = true;
     resultBanner.style.display = 'none';
     revealAnswer(null, 'done');
     renderQuestionWords(state.words.length - 1);
@@ -1127,60 +1293,54 @@ function hideAll() {
    Event listeners
 ═══════════════════════════════════════════════════════════════════ */
 btnNew.addEventListener('click', () => {
-  state.synth.cancel();
-  stopMic();
-  clearTimeout(state.readingTimer);
+  state.synth.cancel(); stopElAudio(); stopMic(); clearTimeout(state.readingTimer);
   fetchTossup();
 });
 
 btnBuzz.addEventListener('click', doBuzz);
 btnSkip.addEventListener('click', doSkip);
-
-// Fallback manual submit
 btnSubmit.addEventListener('click', () => submitAnswer(answerInput.value));
 answerInput.addEventListener('keydown', e => { if (e.key === 'Enter') submitAnswer(answerInput.value); });
 
 speedSlider.addEventListener('input', () => {
-  speedLabel.textContent = parseFloat(speedSlider.value).toFixed(2).replace(/\.?0+$/, '') + '×';
-  if (state.phase === 'reading') {
-    const resumeFrom = state.wordIdx;
-    state.synth.cancel();
-    clearTimeout(state.readingTimer);
-    const remaining = state.words.slice(resumeFrom >= 0 ? resumeFrom : 0);
-    const partialChunks = buildChunks(remaining);
-    const offset = resumeFrom >= 0 ? resumeFrom : 0;
-    ttsChunks = partialChunks.map(c => ({
-      ...c,
-      words: c.words.map(w => ({ ...w, idx: w.idx + offset })),
-      startIdx: c.startIdx + offset,
-      endIdx:   c.endIdx   + offset,
-    }));
-    chunkIdx = 0;
-    state.readingTimer = setTimeout(() => speakChunk(0), 100);
+  speedLabel.textContent = parseFloat(speedSlider.value).toFixed(2).replace(/\.?0+$/,'') + '×';
+  if (state.phase !== 'reading') return;
+  // ElevenLabs: just update playback rate live
+  if (usingElevenLabs()) {
+    if (state.elAudio) state.elAudio.playbackRate = Math.min(Math.max(getRate(), 0.5), 2.0);
+    return;
   }
+  // Web Speech: rebuild chunks from current word
+  const resumeFrom = state.wordIdx;
+  state.synth.cancel(); clearTimeout(state.readingTimer);
+  const offset = resumeFrom >= 0 ? resumeFrom : 0;
+  const partialChunks = buildChunks(state.words.slice(offset));
+  ttsChunks = partialChunks.map(c => ({
+    ...c,
+    words:    c.words.map(w => ({ ...w, idx: w.idx + offset })),
+    startIdx: c.startIdx + offset,
+    endIdx:   c.endIdx   + offset,
+  }));
+  chunkIdx = 0;
+  state.readingTimer = setTimeout(() => speakChunk(0), 100);
 });
 
 document.addEventListener('visibilitychange', () => {
+  if (state.phase !== 'reading') return;
   if (document.hidden) {
-    if (state.phase === 'reading') state.synth.pause();
+    if (usingElevenLabs()) state.elAudio?.pause();
+    else state.synth.pause();
   } else {
-    if (state.phase === 'reading') state.synth.resume();
+    if (usingElevenLabs()) state.elAudio?.play();
+    else state.synth.resume();
   }
 });
 
-// iOS: keep speechSynthesis alive
+// iOS: keep Web Speech alive
 setInterval(() => {
-  if (state.synth.speaking && state.phase === 'reading') state.synth.resume();
+  if (state.synth.speaking && state.phase === 'reading' && !usingElevenLabs())
+    state.synth.resume();
 }, 10000);
-
-// If no mic support, show a subtle note on load
-if (!hasMic) {
-  const note = document.createElement('div');
-  note.style.cssText = 'font-size:.75rem;color:var(--muted);text-align:center;padding:4px 0';
-  note.textContent = 'ℹ Speech recognition not available — you can type your answers instead.';
-  document.getElementById('buzz-section').after(note);
-}
 </script>
-
 </body>
 </html>
