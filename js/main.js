@@ -1,9 +1,46 @@
 // Entry point — wires modules together and handles settings UI.
 
 import { state, settings, saveAnswerMode, dom } from './state.js';
+import { SUBCATEGORIES, yearOptions } from './categories.js';
 import * as tts from './tts.js';
 import * as solo from './solo.js';
 import * as ui from './ui.js';
+
+/* ── Filters: populate year dropdowns ── */
+for (const y of yearOptions()) {
+  const a = document.createElement('option'); a.value = y; a.textContent = y;
+  const b = document.createElement('option'); b.value = y; b.textContent = y;
+  dom.selYearFrom.appendChild(a);
+  dom.selYearTo.appendChild(b);
+}
+
+/* ── Filters: subcategory depends on category ── */
+function refreshSubcategories() {
+  const subs = SUBCATEGORIES[dom.selCategory.value] || [];
+  dom.selSubcat.innerHTML = '<option value="">All Topics</option>';
+  subs.forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s;
+    opt.textContent = s;
+    dom.selSubcat.appendChild(opt);
+  });
+  // Disable when no subcategories available (e.g. "All Categories" or Geography)
+  dom.selSubcat.disabled = subs.length === 0;
+}
+dom.selCategory.addEventListener('change', refreshSubcategories);
+refreshSubcategories();
+
+/* ── Filters: keep year range sane (from <= to) ── */
+dom.selYearFrom.addEventListener('change', () => {
+  const from = parseInt(dom.selYearFrom.value, 10);
+  const to   = parseInt(dom.selYearTo.value, 10);
+  if (from && to && from > to) dom.selYearTo.value = dom.selYearFrom.value;
+});
+dom.selYearTo.addEventListener('change', () => {
+  const from = parseInt(dom.selYearFrom.value, 10);
+  const to   = parseInt(dom.selYearTo.value, 10);
+  if (from && to && to < from) dom.selYearFrom.value = dom.selYearTo.value;
+});
 
 /* ── Voices ── */
 tts.populateVoices();

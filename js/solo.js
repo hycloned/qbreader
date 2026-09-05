@@ -23,8 +23,11 @@ export async function newQuestion() {
 
   try {
     const tossup = await fetchRandomTossup({
-      category: dom.selCategory.value,
-      difficulty: dom.selDiff.value,
+      category:    dom.selCategory.value,
+      subcategory: dom.selSubcat.value,
+      difficulty:  dom.selDiff.value,
+      minYear:     dom.selYearFrom.value,
+      maxYear:     dom.selYearTo.value,
     });
     if (!tossup) throw new Error('no tossup');
 
