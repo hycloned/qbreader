@@ -316,15 +316,31 @@ function onAnswerJudged({ directive, directedPrompt, userId, username, score }) 
   renderPlayers();
 
   const who = userId === myUserId ? 'You' : (username || 'Player');
-  if (directive === 'accept') {
-    ui.showBanner('correct', `✓ ${who} got it right (+${score})`);
-  } else {
-    ui.showBanner('wrong', `✗ ${who} missed (${score})`);
-  }
   ui.hideBuzzUI();
   stopMic();
-  // Reading may resume for others (rebuzz) — server will send more words or reveal.
-  if (state.phase === 'buzzed') ui.setPhase('reading');
+
+  if (directive === 'accept') {
+    // Correct answer — tossup is over; server will send reveal-tossup-answer.
+    ui.showBanner('correct', `✓ ${who} got it right (+${score})`);
+    dom.btnBuzz.disabled = true;
+    buzzedInUserId = null;
+    renderPlayers();
+    return;
+  }
+
+  // Wrong answer — the server RESUMES reading for the remaining players.
+  ui.showBanner('wrong', `✗ ${who} missed (${score}) — reading continues…`);
+  buzzedInUserId = null;
+  renderPlayers();
+
+  // Resume reading state and re-open buzzing. The server decides who's actually
+  // allowed to buzz again (e.g. the player who missed usually can't rebuzz);
+  // if we send a disallowed buzz it's simply ignored server-side.
+  ui.setPhase('reading');
+  speaking = false;              // allow the speak pipeline to restart
+  dom.btnBuzz.disabled = false;  // let remaining players buzz on resumed reading
+  // Any words that already arrived while judging get spoken now.
+  drainSpeakQueue();
 }
 
 /* ── Full answer revealed (tossup over) ── */
