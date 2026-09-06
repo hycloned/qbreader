@@ -186,35 +186,88 @@ function onStartTossup(data) {
   renderPlayers();
 }
 
-/* ── A word arrives from the server ── */
+/* ── A word arrives from the server ──
+   The server streams words much faster than TTS can speak them. If we reveal
+   each word the instant it arrives, the whole question appears while the voice
+   is still near the start — spoiling the buzz. Instead we buffer incoming
+   words and reveal them in step with the voice as it actually speaks. */
 function onWord({ word }) {
-  // Server sends power/buzzpoint markers we shouldn't show or read
+  // Skip power/buzzpoint markers (not shown, not read)
   if (word === '(*)' || word === '[*]' || word === '(+)') return;
 
-  // Append to the visible question
-  state.words.push(word, ' ');
-  const idx = state.words.length - 2; // the word we just pushed
-  ui.renderQuestionWords(idx);
-
-  // Queue it for TTS (read aloud in order as words stream in)
   if (app.mode === 'multi') {
     speakQueue.push(word);
     drainSpeakQueue();
+  } else {
+    // (defensive) solo path — reveal immediately
+    state.words.push(word, ' ');
+    ui.renderQuestionWords(state.words.length - 2);
   }
 }
 
-// Speak queued words one at a time using a short utterance each.
+// Speak buffered words in step with the voice, revealing each word only as
+// it's spoken. We speak in small batches and reveal word-by-word via a timer
+// paced to the utterance, so text and audio stay aligned.
 function drainSpeakQueue() {
   if (speaking || !speakQueue.length) return;
   if (state.phase !== 'reading') { speakQueue = []; return; }
   speaking = true;
-  const chunk = speakQueue.splice(0, speakQueue.length).join(' ');
-  const u = new SpeechSynthesisUtterance(chunk);
-  u.rate = tts.getRate();
+
+  // Take the currently-buffered words as one batch.
+  const batch = speakQueue.splice(0, speakQueue.length);
+  const text  = batch.join(' ');
+  const rate  = tts.getRate();
+
+  const u = new SpeechSynthesisUtterance(text);
+  u.rate  = rate;
   u.pitch = 0.97;
-  u.lang = 'en-US';
-  u.onend = () => { speaking = false; drainSpeakQueue(); };
-  u.onerror = () => { speaking = false; drainSpeakQueue(); };
+  u.lang  = 'en-US';
+
+  // Reveal words as the voice progresses.
+  let localPos = 0;
+  let boundaryFired = false;
+
+  const revealUpToLocal = (n) => {
+    // Reveal words[ batchStart .. batchStart+n ] of the batch
+    while (localPos <= n && localPos < batch.length) {
+      state.words.push(batch[localPos], ' ');
+      localPos++;
+    }
+    ui.renderQuestionWords(state.words.length - 2);
+  };
+
+  u.onboundary = (e) => {
+    if (e.name !== 'word' || state.phase !== 'reading') return;
+    boundaryFired = true;
+    // Map char offset to a word index within the batch
+    let cc = 0, wi = 0;
+    for (; wi < batch.length; wi++) {
+      cc += batch[wi].length + (wi > 0 ? 1 : 0);
+      if (cc >= e.charIndex + 1) break;
+    }
+    revealUpToLocal(wi);
+  };
+
+  // iOS Safari doesn't fire onboundary — fall back to a timer paced to rate.
+  const msPerWord = (60 / (150 * rate)) * 1000;
+  let timerPos = 0;
+  const timer = setInterval(() => {
+    if (state.phase !== 'reading') { clearInterval(timer); return; }
+    if (!boundaryFired) {
+      revealUpToLocal(timerPos);
+      timerPos = Math.min(timerPos + 1, batch.length - 1);
+    }
+  }, msPerWord);
+
+  const finish = () => {
+    clearInterval(timer);
+    revealUpToLocal(batch.length - 1); // ensure all batch words shown
+    speaking = false;
+    drainSpeakQueue();
+  };
+  u.onend   = finish;
+  u.onerror = finish;
+
   state.synth.speak(u);
 }
 
