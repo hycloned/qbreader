@@ -47,3 +47,55 @@ export function yearOptions() {
   for (let y = current; y >= 2000; y--) years.push(y);
   return years;
 }
+
+// ── Multiplayer: official QBReader category taxonomy ──
+// The order MUST match the server's CATEGORIES array exactly, because the
+// server validates that categoryPercents.length === CATEGORIES.length.
+export const MP_CATEGORIES = [
+  'Literature',
+  'History',
+  'Science',
+  'Fine Arts',
+  'Religion',
+  'Mythology',
+  'Philosophy',
+  'Social Science',
+  'Current Events',
+  'Geography',
+  'Other Academic',
+  'Pop Culture',
+];
+
+// Regular subcategories per category (matches server CATEGORY_TO_SUBCATEGORY).
+export const MP_SUBCATEGORIES = {
+  'Literature':      ['American Literature', 'British Literature', 'Classical Literature', 'European Literature', 'World Literature', 'Other Literature'],
+  'History':         ['American History', 'Ancient History', 'European History', 'World History', 'Other History'],
+  'Science':         ['Biology', 'Chemistry', 'Physics', 'Other Science'],
+  'Fine Arts':       ['Visual Fine Arts', 'Auditory Fine Arts', 'Other Fine Arts'],
+  'Religion':        [],
+  'Mythology':       [],
+  'Philosophy':      [],
+  'Social Science':  [],
+  'Current Events':  [],
+  'Geography':       [],
+  'Other Academic':  [],
+  'Pop Culture':     ['Movies', 'Music', 'Sports', 'Television', 'Video Games', 'Other Pop Culture'],
+};
+
+/**
+ * Build a valid `set-categories` payload for the multiplayer server.
+ * @param {string} category     one category name, or '' for all
+ * @param {string} subcategory  one subcategory name, or '' for all in category
+ */
+export function buildCategoriesPayload(category, subcategory) {
+  const categories = category ? [category] : [];
+  const subcategories = subcategory ? [subcategory] : [];
+  return {
+    type: 'set-categories',
+    categories,
+    subcategories,
+    alternateSubcategories: [],
+    percentView: false,
+    categoryPercents: MP_CATEGORIES.map(() => 0), // length must equal CATEGORIES.length
+  };
+}

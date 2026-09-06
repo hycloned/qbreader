@@ -1,7 +1,7 @@
 // Entry point — wires modules together and handles settings UI.
 
 import { state, settings, saveAnswerMode, dom, app } from './state.js';
-import { SUBCATEGORIES, yearOptions } from './categories.js';
+import { SUBCATEGORIES, yearOptions, buildCategoriesPayload } from './categories.js';
 import * as tts from './tts.js';
 import * as solo from './solo.js';
 import * as multi from './multiplayer.js';
@@ -28,8 +28,24 @@ function refreshSubcategories() {
   // Disable when no subcategories available (e.g. "All Categories" or Geography)
   dom.selSubcat.disabled = subs.length === 0;
 }
-dom.selCategory.addEventListener('change', refreshSubcategories);
+dom.selCategory.addEventListener('change', () => {
+  refreshSubcategories();
+  pushRoomCategories();
+});
 refreshSubcategories();
+
+// Push category/difficulty to the multiplayer room (host controls the game).
+function pushRoomCategories() {
+  if (app.mode !== 'multi' || !multi.isConnected()) return;
+  multi.sendSettings(buildCategoriesPayload(dom.selCategory.value, dom.selSubcat.value));
+}
+function pushRoomDifficulty() {
+  if (app.mode !== 'multi' || !multi.isConnected()) return;
+  const d = parseInt(dom.selDiff.value, 10);
+  multi.sendSettings({ type: 'set-difficulties', difficulties: isNaN(d) ? [] : [d] });
+}
+dom.selSubcat.addEventListener('change', pushRoomCategories);
+dom.selDiff.addEventListener('change', pushRoomDifficulty);
 
 /* ── Filters: keep year range sane (from <= to) ── */
 dom.selYearFrom.addEventListener('change', () => {
@@ -75,8 +91,8 @@ function setMode(mode) {
 
   const isMulti = mode === 'multi';
   dom.roomBar.classList.toggle('hidden', !isMulti);
-  // Filters only apply to solo mode (multiplayer settings are room-controlled)
-  dom.filtersRow.classList.toggle('hidden', isMulti);
+  // Category/difficulty/topic filters apply to both modes. The year filters
+  // are solo-only (multiplayer year range is a separate room setting we skip).
   dom.filtersRow2.classList.toggle('hidden', isMulti);
 
   // Reset the board
@@ -94,6 +110,9 @@ function setMode(mode) {
     dom.btnSkip.classList.remove('hidden');
     dom.btnNew.textContent = 'New Question';
     dom.emptyState.querySelector('p').innerHTML = 'Tap <strong>New Question</strong> to start';
+    // Restore full filter control for solo play
+    multi.setFilterControlsEnabled(true);
+    refreshSubcategories();
   }
 }
 dom.tabSolo.addEventListener('click', () => setMode('solo'));
@@ -107,6 +126,13 @@ dom.roomNameInput.addEventListener('keydown', e => {
   if (e.key === 'Enter') multi.joinRoom(dom.roomNameInput.value, dom.usernameInput.value);
 });
 dom.btnLeaveRoom.addEventListener('click', () => multi.leaveRoom());
+
+// When we connect as host, push our current category & difficulty to the room.
+// Non-hosts get their category/difficulty controls disabled.
+multi.onReady(() => {
+  pushRoomCategories();
+  pushRoomDifficulty();
+});
 
 /* ── Game controls — routed by mode ── */
 dom.btnNew.addEventListener('click', () => {

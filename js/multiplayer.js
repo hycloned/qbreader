@@ -27,6 +27,11 @@ let roomName = '';
 let buzzedInUserId = null;      // who currently holds the buzz
 let speakQueue = [];            // words waiting to be spoken
 let speaking = false;
+let roomIsOwned = false;        // does the local user own this room?
+let onReadyCallback = null;     // called once connection-acknowledged arrives
+
+/** Register a callback fired when we're fully connected (host can push settings). */
+export function onReady(fn) { onReadyCallback = fn; }
 
 /* ── Public: join / leave ── */
 export function joinRoom(name, username) {
@@ -102,6 +107,15 @@ function showJoinUI() {
   dom.roomConnected.classList.add('hidden');
   dom.btnNew.textContent = 'New Question';
   dom.btnSkip.classList.remove('hidden');
+  setFilterControlsEnabled(true); // re-enable for solo / next join
+}
+
+// Enable/disable the category & difficulty selectors (host controls only).
+export function setFilterControlsEnabled(enabled) {
+  dom.selCategory.disabled = !enabled;
+  dom.selDiff.disabled = !enabled;
+  // subcategory has its own disabled logic (empty list) — only force-disable
+  if (!enabled) dom.selSubcat.disabled = true;
 }
 
 /* ── Message router ── */
@@ -130,12 +144,25 @@ function onConnAck(data) {
     myUserId = data.userId;
     localStorage.setItem('qb_user_id', myUserId);
   }
+  // We own the room if the server says our id is the owner id.
+  roomIsOwned = !!data.ownerId && data.ownerId === myUserId;
+
   players = {};
   const src = data.players || {};
   for (const id in src) {
     players[id] = { username: src[id].username || 'Player', points: src[id].points || 0 };
   }
   renderPlayers();
+
+  // Host controls category & difficulty; everyone else's controls are locked.
+  setFilterControlsEnabled(roomIsOwned);
+
+  // Let the host push their current category/difficulty selections.
+  if (roomIsOwned && onReadyCallback) onReadyCallback();
+
+  if (!roomIsOwned) {
+    ui.showBanner('prompt', 'Joined! The room host controls category & difficulty.');
+  }
 }
 
 /* ── New tossup starts ── */
@@ -337,6 +364,16 @@ export function next() {
 export function cancelMic() {
   stopMic();
   ui.showTypeUI();
+}
+
+/** Send an arbitrary room-settings message (e.g. set-categories, set-difficulties). */
+export function sendSettings(obj) {
+  send(obj);
+}
+
+/** True if the local user owns/created the room (can control settings). */
+export function isOwner() {
+  return roomIsOwned;
 }
 
 export function isConnected() {
